@@ -81,13 +81,15 @@ void Listen()
 
 int main(void)
 {
-  Connection("127.0.0.1",45001);
+  Connection("100.107.106.165",50001);
+  //Connection("127.0.0.1",45001);
 
   ssize_t read_return;
 
   header hdr;
 
-  FILE *filefd = fopen("10840.pdf", "rb");
+  //FILE *filefd = fopen("10840.pdf", "rb");
+  FILE *filefd = fopen("pecc2016.pdf", "rb");
   fseek(filefd, 0, SEEK_END);
   unsigned long filesize = ftell(filefd);
   char *buffer = (char*)malloc(sizeof(char)*filesize);
@@ -105,7 +107,8 @@ int main(void)
   int bytesSent = 0;
   while (bytesSent < hdr.data_lenght)
   {
-    bytesSent = write(SocketFD, &buffer[loc], BUFSIZ);
+    //bytesSent = write(SocketFD, &buffer[loc], BUFSIZ);
+    bytesSent = write(SocketFD, &buffer[loc], 1024);
     if (bytesSent < 0)
     {
       /* handle error */

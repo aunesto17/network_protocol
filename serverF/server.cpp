@@ -137,8 +137,8 @@ int main(void)
     int loc = 0; //buffer position to write
     int bytesread = 0; // how much data read so far
     
-    while(hdr.data_lenght > BUSIZ){
-      bytesread = read(clients[0],&buffer[loc],BUFSIZ);
+    while(hdr.data_lenght > 1024){
+      bytesread = read(clients[0],&buffer[loc],1024);
       cout << "bytes recieved: " << bytesread << endl;
       if(bytesread < 0){ 
         // handle error
