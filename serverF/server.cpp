@@ -15,7 +15,14 @@
   #include <fcntl.h>   
 
   using namespace std;
- 
+ #define BUSIZ 1500
+
+
+struct header{
+  long data_lenght;
+};
+
+
 vector<int> clients;
 
 void Broadcast(int ConnectFD, string message) 
@@ -95,20 +102,17 @@ int main(void)
 {
   struct sockaddr_in stSockAddr;
 
-  char *file_path = "output.tmp";
-  int filefd;
-  ssize_t read_return;
+  char *file_path = "output.pdf";
+  //int filefd;
+  //ssize_t read_return;
 
   int SocketFD;
-  char buffer[1500];
+  //char buffer[1500];
   int n;
   cout<<"Hi"<<endl;
-  Connection( SocketFD, 45000);
+  Connection( SocketFD, 45001);
   
   cout<<"Connection initialized"<<endl;
-  
-  while(1)
-  {
     
     int ConnectFD = accept(SocketFD, NULL, NULL);
 
@@ -119,32 +123,40 @@ int main(void)
       exit(EXIT_FAILURE);
     }
     clients.push_back(ConnectFD);
-    thread(listenClient, ConnectFD).detach();
-
-    filefd = open(file_path,
-                O_WRONLY | O_CREAT | O_TRUNC,
-                S_IRUSR | S_IWUSR);
-    if (filefd == -1) {
-        perror("open");
-        exit(EXIT_FAILURE);
-    }
-    while (1) {
-        read_return = read(SocketFD, buffer, 1500);
-        if (read_return == 0)
-            break;
-        if (read_return == -1) {
-            perror("read");
-            exit(EXIT_FAILURE);
-        }
-        if (write(filefd, buffer, read_return) == -1) {
-            perror("write");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    close(filefd);
     
-  }
+
+    FILE* fd = fopen(file_path, "wb");
+    
+    header hdr;
+
+    read(clients[0], &hdr, sizeof(hdr));
+    int filesize = hdr.data_lenght;
+    cout << "file size to be recieved: " << hdr.data_lenght << endl;
+    char *buffer = (char*) malloc(sizeof(char)*hdr.data_lenght);
+
+    int loc = 0; //buffer position to write
+    int bytesread = 0; // how much data read so far
+    
+    while(hdr.data_lenght > BUSIZ){
+      bytesread = read(clients[0],&buffer[loc],BUFSIZ);
+      cout << "bytes recieved: " << bytesread << endl;
+      if(bytesread < 0){ 
+        // handle error
+      }
+      loc += bytesread;
+      hdr.data_lenght = hdr.data_lenght - bytesread;
+    }
+    cout << "File recieved..." << endl;
+    if (hdr.data_lenght > 0)
+    {
+      bytesread = read(clients[0],&buffer[loc],hdr.data_lenght);
+    }
+    
+    
+    
+    //write to file
+    fwrite(buffer, sizeof(char), filesize, fd);
+    fclose(fd);
 
   close(SocketFD);
   cout<<"Bye"<<endl;

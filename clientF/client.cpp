@@ -16,9 +16,13 @@
 
 using namespace std;
 
-#define BUFSIZ 1500
+#define BUSIZ 1500
 
 int SocketFD;
+
+struct header{
+  long data_lenght;
+};
 
 void Connection ( string IP, int port)
 {
@@ -77,23 +81,47 @@ void Listen()
 
 int main(void)
 {
-  Connection("100.107.106.165",50001);
+  Connection("127.0.0.1",45001);
 
-  char *file_path = "input.tmp";
-  char buffer[BUFSIZ];
-  int filefd;
   ssize_t read_return;
 
-  //read file 
-  filefd = open(file_path, O_RDONLY);
-    if (filefd == -1) {
-        perror("open");
-        exit(EXIT_FAILURE);
+  header hdr;
+
+  FILE *filefd = fopen("10840.pdf", "rb");
+  fseek(filefd, 0, SEEK_END);
+  unsigned long filesize = ftell(filefd);
+  char *buffer = (char*)malloc(sizeof(char)*filesize);
+  rewind(filefd);
+  hdr.data_lenght = filesize;
+
+  fread(buffer, sizeof(char), filesize, filefd);
+  cout << "buffer load: " << sizeof(buffer) << " filefdS: " << sizeof(filefd) <<endl;
+  cout << "hrd.dl_sent: " << hdr.data_lenght << endl;
+
+  //send size of the file first
+  write(SocketFD, &hdr, sizeof(hdr));
+  // send file
+  int loc = 0;
+  int bytesSent = 0;
+  while (bytesSent < hdr.data_lenght)
+  {
+    bytesSent = write(SocketFD, &buffer[loc], BUFSIZ);
+    if (bytesSent < 0)
+    {
+      /* handle error */
     }
+    loc += bytesSent;
+    hdr.data_lenght = hdr.data_lenght - bytesSent;
+    cout << "bS: " << bytesSent << " loc: " << loc << " bytesLeft: " << hdr.data_lenght << endl;
+  }
+  cout << "File sent..." << endl;
+  bytesSent = write(SocketFD, &buffer[loc], hdr.data_lenght);
 
 
-  int n;
-  thread(Listen).detach();
+  
+
+  //thread(Listen).detach();
+
   /*
   while( 1 )
   { 
@@ -104,23 +132,9 @@ int main(void)
       n = write(SocketFD,message.c_str(),message.length());      
   }
   */
-  
-  while (1) {
-        read_return = read(filefd, buffer, BUFSIZ);
-        if (read_return == 0)
-            break;
-        if (read_return == -1) {
-            perror("read");
-            exit(EXIT_FAILURE);
-        }
-        if (write(SocketFD, buffer, read_return) == -1) {
-            perror("write");
-            exit(EXIT_FAILURE);
-        }
-    }
 
   shutdown(SocketFD, SHUT_RDWR);
-  close(filefd);
+  //close(filefd);
   close(SocketFD);
   return 0;
 }
